@@ -8,8 +8,6 @@ from src.silver import transform_to_silver
 from src.data_quality import run_data_quality
 from src.gold import create_gold_layer
 
-v=7
-
 default_args = {
     "owner": "romulo",
     "retries": 2,
@@ -46,7 +44,7 @@ with DAG(
     dag_id="brewery_medallion_pipeline",
     default_args=default_args,
     description="Pipeline to ingest breweries data and build medallion layers",
-    schedule_interval="@daily",
+    schedule_interval="0 15 * * *",
     start_date=datetime(2026, 1, 1),
     catchup=False,
     tags=["case", "medallion", "breweries", "BEES", "ABInBev"],

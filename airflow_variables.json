@@ -1,4 +1,7 @@
 {
+    "API_BACKOFF_FACTOR": 0.5,
+    "API_BASE_URL": "https://api.openbrewerydb.org/v1/breweries",
+    "API_TOTAL_RETRIES": 3,
     "MAX_LAT_NULL_PCT ": 0.3,
     "MAX_UNKNOWN_COUNTRY_PCT": 0.1
 }
