@@ -7,6 +7,10 @@ BASE_PATH = "/opt/airflow/data-lake/bronze/breweries"
 
 
 def save_raw_data(data: List[Dict], execution_date: str) -> str:
+    """
+    Save all data on bronze layer.
+    """
+
     folder_path = os.path.join(
         BASE_PATH,
         f"ingestion_date={execution_date}"

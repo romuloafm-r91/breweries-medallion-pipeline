@@ -8,11 +8,11 @@ from src.silver import transform_to_silver
 from src.data_quality import run_data_quality
 from src.gold import create_gold_layer
 
-v=6
+v=7
 
 default_args = {
     "owner": "romulo",
-    "retries": 0,
+    "retries": 2,
     "email": ["romuloafm@gmail.com"],
     "email_on_failure": True,
     "email_on_retry": False,
@@ -47,9 +47,9 @@ with DAG(
     default_args=default_args,
     description="Pipeline to ingest breweries data and build medallion layers",
     schedule_interval="@daily",
-    start_date=datetime(2024, 1, 1),
+    start_date=datetime(2026, 1, 1),
     catchup=False,
-    tags=["case", "medallion", "breweries"],
+    tags=["case", "medallion", "breweries", "BEES", "ABInBev"],
 ) as dag:
 
     extract_bronze = PythonOperator(

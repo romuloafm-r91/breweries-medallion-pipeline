@@ -1,13 +1,11 @@
 import requests
 from typing import List, Dict
 
-
 BASE_URL = "https://api.openbrewerydb.org/v1/breweries"
-
 
 def fetch_breweries(per_page: int = 200) -> List[Dict]:
     """
-    Fetch all breweries from Open Brewery DB API handling pagination.
+    Fetch all breweries from API.
     """
     all_data = []
     page = 1

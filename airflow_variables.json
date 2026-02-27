@@ -1,0 +1,4 @@
+{
+    "MAX_LAT_NULL_PCT ": 0.3,
+    "MAX_UNKNOWN_COUNTRY_PCT": 0.1
+}
