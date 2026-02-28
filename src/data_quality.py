@@ -41,33 +41,45 @@ def validate_silver_dataframe(df: pd.DataFrame, thresholds: dict):
     unknown_country_pct = (df["country"] == "unknown").mean()
 
     if lat_null_pct > thresholds["max_lat_null_pct"]:
-        raise ValueError(f"Data Quality Failed: Latitude null pct {lat_null_pct:.2%} above threshold {thresholds['max_lat_null_pct']:.0%}")
+        raise ValueError(
+            f"Data Quality Failed: Latitude null pct {lat_null_pct:.2%} "
+            f"above threshold {thresholds['max_lat_null_pct']:.0%}"
+        )
 
     if unknown_country_pct > thresholds["max_unknown_country_pct"]:
-        raise ValueError(f"Data Quality Failed: Too many unknown countries ({unknown_country_pct:.2%}). Its above threshold {thresholds['max_unknown_country_pct']:.0%}")
+        raise ValueError(
+            f"Data Quality Failed: Too many unknown countries "
+            f"({unknown_country_pct:.2%}). Its above threshold "
+            f"{thresholds['max_unknown_country_pct']:.0%}"
+        )
 
 def run_data_quality(execution_date: str, ti=None):
     """
     Run data quality validations on Silver layer.
     """
 
-    silver_path = os.path.join(
-        SILVER_BASE_PATH,
-        f"ingestion_date={execution_date}"
-    )
+    if not os.path.exists(SILVER_BASE_PATH):
+        raise FileNotFoundError(
+            f"Silver base path not found: {SILVER_BASE_PATH}"
+        )
 
-    df = pd.read_parquet(silver_path)
+    df = pd.read_parquet(SILVER_BASE_PATH)
+    df = df[df["ingestion_date"] == execution_date]
+
+    if df.empty:
+        raise FileNotFoundError(
+            f"No Silver data found for ingestion_date={execution_date}"
+        )
 
     validate_silver_dataframe(df, get_quality_thresholds())
 
     logging.info("Data Quality Passed Successfully!")
 
-    total_records = len(df)
-
-    duplicate_ids = df["id"].duplicated().sum()
-    lat_null_pct = df["latitude"].isna().mean()
-    lon_null_pct = df["longitude"].isna().mean()
-    unknown_country_pct = (df["country"] == "unknown").mean()
+    total_records = int(len(df))
+    duplicate_ids = int(df["id"].duplicated().sum())
+    lat_null_pct = float(df["latitude"].isna().mean())
+    lon_null_pct = float(df["longitude"].isna().mean())
+    unknown_country_pct = float((df["country"] == "unknown").mean())
 
     metrics = {
         "execution_date": execution_date,
@@ -82,5 +94,3 @@ def run_data_quality(execution_date: str, ti=None):
 
     if ti:
         ti.xcom_push(key="dq_metrics", value=metrics)
-
-    

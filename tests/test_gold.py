@@ -6,7 +6,8 @@ def test_gold_aggregation_counts_correctly():
     df = pd.DataFrame({
         "country": ["us", "us"],
         "state": ["ny", "ny"],
-        "brewery_type": ["micro", "micro"]
+        "brewery_type": ["micro", "micro"],
+        "ingestion_date": ["2026-02-28", "2026-02-28"]
     })
 
     result = aggregate_breweries(df)

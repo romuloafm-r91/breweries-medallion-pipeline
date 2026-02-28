@@ -1,16 +1,14 @@
 import os
 import json
-import pandas as pd
 import shutil
+import pandas as pd
 
 
 BRONZE_BASE_PATH = "/opt/airflow/data-lake/bronze/breweries"
 SILVER_BASE_PATH = "/opt/airflow/data-lake/silver/breweries"
 
+
 def clean_breweries_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Clear dataframe data from bronze layer, removing columns and adding treatments.
-    """
     df = df[
         [
             "id",
@@ -27,22 +25,34 @@ def clean_breweries_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     df = df.drop_duplicates(subset=["id"])
 
     df["name"] = df["name"].fillna("").str.strip()
-    df["brewery_type"] = df["brewery_type"].fillna("").str.lower().str.strip()
-    df["city"] = df["city"].fillna("unknown").str.strip().str.lower()
+
+    df["brewery_type"] = (
+        df["brewery_type"]
+        .fillna("")
+        .str.lower()
+        .str.strip()
+    )
+
+    df["city"] = (
+        df["city"]
+        .fillna("unknown")
+        .str.lower()
+        .str.strip()
+    )
 
     df["country"] = (
         df["country"]
         .fillna("unknown")
-        .str.strip()
         .str.lower()
+        .str.strip()
         .str.replace(" ", "_", regex=False)
     )
 
     df["state"] = (
         df["state"]
         .fillna("unknown")
-        .str.strip()
         .str.lower()
+        .str.strip()
         .str.replace(" ", "_", regex=False)
     )
 
@@ -51,10 +61,8 @@ def clean_breweries_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
 def transform_to_silver(execution_date: str) -> str:
-    """
-    Transform raw Bronze JSON into cleaned and standardized Silver parquet.
-    """
 
     bronze_path = os.path.join(
         BRONZE_BASE_PATH,
@@ -65,22 +73,33 @@ def transform_to_silver(execution_date: str) -> str:
     with open(bronze_path, "r") as f:
         data = json.load(f)
 
-    df = clean_breweries_dataframe(pd.DataFrame(data))
+    df = pd.DataFrame(data)
 
-    silver_path = os.path.join(
-        SILVER_BASE_PATH,
-        f"ingestion_date={execution_date}"
-    )
+    df = clean_breweries_dataframe(df)
 
-    if os.path.exists(silver_path):
-        shutil.rmtree(silver_path)
+    df["ingestion_date"] = execution_date
 
-    os.makedirs(silver_path, exist_ok=True)
+    # 🔥 IDMPOTÊNCIA REAL
+    if os.path.exists(SILVER_BASE_PATH):
+
+        for folder in os.listdir(SILVER_BASE_PATH):
+
+            country_path = os.path.join(SILVER_BASE_PATH, folder)
+
+            if os.path.isdir(country_path):
+
+                date_partition = os.path.join(
+                    country_path,
+                    f"ingestion_date={execution_date}"
+                )
+
+                if os.path.exists(date_partition):
+                    shutil.rmtree(date_partition)
 
     df.to_parquet(
-        silver_path,
+        SILVER_BASE_PATH,
         index=False,
-        partition_cols=["country", "state"]
+        partition_cols=["country", "ingestion_date"]
     )
 
-    return silver_path
+    return SILVER_BASE_PATH
