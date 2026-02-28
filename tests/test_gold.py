@@ -7,7 +7,9 @@ def test_gold_aggregation_counts_correctly():
         "country": ["us", "us"],
         "state": ["ny", "ny"],
         "brewery_type": ["micro", "micro"],
-        "ingestion_date": ["2026-02-28", "2026-02-28"]
+        "ingestion_year": [2026, 2026],
+        "ingestion_month": [2, 2],
+        "ingestion_day": [28, 28],
     })
 
     result = aggregate_breweries(df)

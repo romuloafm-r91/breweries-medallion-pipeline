@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 import os
 import pandas as pd
@@ -63,8 +64,22 @@ def run_data_quality(execution_date: str, ti=None):
             f"Silver base path not found: {SILVER_BASE_PATH}"
         )
 
-    df = pd.read_parquet(SILVER_BASE_PATH)
-    df = df[df["ingestion_date"] == execution_date]
+    # df = pd.read_parquet(SILVER_BASE_PATH)
+    # df = df[df["ingestion_date"] == execution_date]
+
+    date_obj = datetime.strptime(execution_date, "%Y-%m-%d")
+    year = int(date_obj.strftime("%Y"))
+    month = int(date_obj.strftime("%m"))
+    day = int(date_obj.strftime("%d"))
+
+    df = pd.read_parquet(
+        SILVER_BASE_PATH,
+        filters=[
+            ("ingestion_year", "=", year),
+            ("ingestion_month", "=", month),
+            ("ingestion_day", "=", day),
+        ],
+    )
 
     if df.empty:
         raise FileNotFoundError(

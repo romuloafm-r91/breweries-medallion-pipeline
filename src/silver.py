@@ -1,7 +1,7 @@
 import os
 import json
-import shutil
 import pandas as pd
+from datetime import datetime
 
 
 BRONZE_BASE_PATH = "/opt/airflow/data-lake/bronze/breweries"
@@ -64,42 +64,46 @@ def clean_breweries_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 def transform_to_silver(execution_date: str) -> str:
 
+    # Parse execution date
+    date_obj = datetime.strptime(execution_date, "%Y-%m-%d")
+    year = date_obj.strftime("%Y")
+    month = date_obj.strftime("%m")
+    day = date_obj.strftime("%d")
+
     bronze_path = os.path.join(
         BRONZE_BASE_PATH,
-        f"ingestion_date={execution_date}",
-        "raw.json"
+        f"ingestion_year={year}",
+        f"ingestion_month={month}",
+        f"ingestion_day={day}",
+        f"raw_{year}_{month}_{day}.json",
     )
+
+    if not os.path.exists(bronze_path):
+        raise FileNotFoundError(f"Bronze file not found: {bronze_path}")
 
     with open(bronze_path, "r") as f:
         data = json.load(f)
 
     df = pd.DataFrame(data)
 
-    df = clean_breweries_dataframe(df)
+    silver_df = clean_breweries_dataframe(df)
 
-    df["ingestion_date"] = execution_date
+    silver_df["ingestion_date"] = execution_date
+    silver_df["ingestion_year"] = year
+    silver_df["ingestion_month"] = month
+    silver_df["ingestion_day"] = day
 
-    # 🔥 IDMPOTÊNCIA REAL
-    if os.path.exists(SILVER_BASE_PATH):
-
-        for folder in os.listdir(SILVER_BASE_PATH):
-
-            country_path = os.path.join(SILVER_BASE_PATH, folder)
-
-            if os.path.isdir(country_path):
-
-                date_partition = os.path.join(
-                    country_path,
-                    f"ingestion_date={execution_date}"
-                )
-
-                if os.path.exists(date_partition):
-                    shutil.rmtree(date_partition)
-
-    df.to_parquet(
+    silver_df.to_parquet(
         SILVER_BASE_PATH,
         index=False,
-        partition_cols=["country", "ingestion_date"]
+        partition_cols=[
+            "country",
+            "ingestion_year",
+            "ingestion_month",
+            "ingestion_day",
+        ],
+        engine="pyarrow",
+        existing_data_behavior="delete_matching",
     )
 
     return SILVER_BASE_PATH
