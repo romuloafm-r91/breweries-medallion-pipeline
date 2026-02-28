@@ -2,7 +2,8 @@ import os
 import pandas as pd
 
 SILVER_BASE_PATH = "/opt/airflow/data-lake/silver/breweries"
-GOLD_BASE_PATH = "/opt/airflow/data-lake/gold/breweries_aggregated"
+GOLD_BASE_PATH = "/opt/airflow/data-lake/gold/breweries"
+
 
 def aggregate_breweries(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -10,36 +11,38 @@ def aggregate_breweries(df: pd.DataFrame) -> pd.DataFrame:
     """
     return (
         df.groupby(
-            ["country", "state", "brewery_type"]
+            ["country", "state", "brewery_type", "ingestion_date"]
         )
         .size()
         .reset_index(name="total_breweries")
     )
 
+
 def create_gold_layer(execution_date: str):
     """
-    Persist dataframe on gold layer.
+    Persist dataframe on gold layer (idempotent via pyarrow overwrite).
     """
 
-    silver_path = os.path.join(
-        SILVER_BASE_PATH,
-        f"ingestion_date={execution_date}"
-    )
+    if not os.path.exists(SILVER_BASE_PATH):
+        raise FileNotFoundError(
+            f"Silver base path not found: {SILVER_BASE_PATH}"
+        )
 
-    df = pd.read_parquet(silver_path)
+    df = pd.read_parquet(SILVER_BASE_PATH)
+
+    df = df[df["ingestion_date"] == execution_date]
+
+    if df.empty:
+        raise FileNotFoundError(
+            f"No Silver data found for ingestion_date={execution_date}"
+        )
 
     gold_df = aggregate_breweries(df)
 
-    gold_output_dir = os.path.join(
+    gold_df.to_parquet(
         GOLD_BASE_PATH,
-        f"ingestion_date={execution_date}"
+        index=False,
+        partition_cols=["country", "ingestion_date"],
+        engine="pyarrow",
+        existing_data_behavior="delete_matching"
     )
-
-    os.makedirs(gold_output_dir, exist_ok=True)
-
-    gold_file_path = os.path.join(
-        gold_output_dir,
-        "breweries_aggregated.parquet"
-    )
-
-    gold_df.to_parquet(gold_file_path, index=False)
